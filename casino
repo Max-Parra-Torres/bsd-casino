@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+#
+# casino — a tiny bsd-games-style launcher for CLI casino games.
+#
+# Usage:
+#   ./casino            interactive menu
+#   ./casino blackjack  jump straight into a game
+#   ./casino slots
+#   ./casino highlow
+
+set -euo pipefail
+
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+
+run_game() {
+    local name=$1
+    case "$name" in
+        blackjack|bj)  bash "${SCRIPT_DIR}/blackjack.sh" ;;
+        slots|slot)    bash "${SCRIPT_DIR}/slots.sh" ;;
+        highlow|hl)    bash "${SCRIPT_DIR}/highlow.sh" ;;
+        *)
+            echo "Unknown game: $name"
+            echo "Available games: blackjack, slots, highlow"
+            exit 1
+            ;;
+    esac
+}
+
+show_menu() {
+clear
+    cat <<'EOF'
+====================================
+         CASINO GAMES
+====================================
+  1) Blackjack
+  2) Slots
+  3) High-Low
+  q) Quit
+------------------------------------
+EOF
+}
+
+interactive() {
+    local choice
+    while true; do
+        show_menu
+        read -rp "Pick a game: " choice
+        case "$choice" in
+            1) run_game blackjack ;;
+            2) run_game slots ;;
+            3) run_game highlow ;;
+            q|Q) echo "Goodbye!"; exit 0 ;;
+            *) echo "Invalid choice." ;;
+        esac
+        echo
+    done
+}
+
+if (($# == 0)); then
+    interactive
+else
+    run_game "$1"
+fi
