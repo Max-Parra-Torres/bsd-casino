@@ -29,6 +29,14 @@ bankroll=${1:-100}
 CARD_PACE=${CASINO_CARD_PACE:-1}
 LINE_PACE=${CASINO_LINE_PACE:-0.9}
 
+# Bet memory: "s"/"S" reuse the last bet; "S" also stops future prompting.
+last_bet=""
+skip_bet_prompt=false
+
+# Set true the moment the player types q/Q anywhere; every loop checks
+# this and unwinds immediately instead of asking "play another round?".
+quit=false
+
 # Formats a number as a dollar amount without ever putting a literal "$"
 # directly next to a variable expansion inside a quoted string — that
 # adjacency is what makes hand-edited/copy-pasted scripts fragile.
@@ -111,22 +119,59 @@ deal_one() {
     sleep "$CARD_PACE"
 }
 
+# Prompts for a bet. Accepts a whole number, or "s"/"S" to reuse the
+# last bet placed this session (only once a last bet exists). An
+# uppercase "S" additionally sets skip_bet_prompt so future rounds
+# don't prompt at all and just reuse that bet automatically.
 get_bet() {
     local bet prompt
     while true; do
-        prompt="Bankroll: $(money "$bankroll"). Enter your bet: "
+        prompt="Bankroll: $(money "$bankroll"). Enter your bet"
+        if [[ -n "$last_bet" ]]; then
+            prompt+=" (or 's' to repeat $(money "$last_bet"), 'S' to repeat it every round)"
+        fi
+        prompt+=", or 'q' to quit: "
         read -rp "$prompt" bet
+
+        if [[ "$bet" == "q" || "$bet" == "Q" ]]; then
+            quit=true
+            echo ""
+            return
+        fi
+
+        if [[ "$bet" == "s" || "$bet" == "S" ]]; then
+            if [[ -z "$last_bet" ]]; then
+                echo "No previous bet yet — enter a whole number."
+                continue
+            fi
+            if ((last_bet > bankroll)); then
+                echo "Your last bet ($(money "$last_bet")) is more than your bankroll. Enter a whole number between 1 and $bankroll."
+                continue
+            fi
+            [[ "$bet" == "S" ]] && skip_bet_prompt=true
+            echo "$last_bet"
+            return
+        fi
+
         if [[ "$bet" =~ ^[0-9]+$ ]] && ((bet > 0)) && ((bet <= bankroll)); then
+            last_bet=$bet
             echo "$bet"
             return
         fi
+
         echo "Enter a whole number between 1 and $bankroll."
     done
 }
 
 play_round() {
     local bet
-    bet=$(get_bet)
+    if $skip_bet_prompt && [[ -n "$last_bet" ]] && ((last_bet <= bankroll)); then
+        bet=$last_bet
+        echo "Bankroll: $(money "$bankroll"). Betting $(money "$bet") (repeat)."
+    else
+        bet=$(get_bet)
+        $quit && return
+    fi
 
     build_deck
     player_hand=()
@@ -172,8 +217,8 @@ play_round() {
             can_double=true
         fi
 
-        local action prompt_text="(h)it or (s)tand? "
-        $can_double && prompt_text="(h)it, (s)tand, or (d)ouble down? "
+        local action prompt_text="(h)it, (s)tand, or (q)uit? "
+        $can_double && prompt_text="(h)it, (s)tand, (d)ouble down, or (q)uit? "
         read -rp "$prompt_text" action
         case "$action" in
             h|H)
@@ -192,8 +237,12 @@ play_round() {
                 say "Doubled down — your turn is over."
                 break
                 ;;
+            q|Q)
+                quit=true
+                return
+                ;;
             *)
-                echo "Type 'h', 's'$($can_double && echo ", or 'd'")."
+                echo "Type 'h', 's', $($can_double && echo "'d', ")or 'q'."
                 ;;
         esac
     done
@@ -243,8 +292,9 @@ play_round() {
 main() {
     new_screen
 
-    while ((bankroll > 0)); do
+    while ((bankroll > 0)) && ! $quit; do
         play_round
+        $quit && break
         echo
         echo "Bankroll: $(money "$bankroll")"
 
@@ -252,10 +302,6 @@ main() {
             say "You're out of money. Game over."
             break
         fi
-
-        local again
-        read -rp "Play another round? (y/n) " again
-        [[ "$again" =~ ^[Yy]$ ]] || break
     done
 
     echo "Final bankroll: $(money "$bankroll"). Thanks for playing!"
