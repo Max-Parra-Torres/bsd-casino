@@ -123,43 +123,45 @@ deal_one() {
 # last bet placed this session (only once a last bet exists). An
 # uppercase "S" additionally sets skip_bet_prompt so future rounds
 # don't prompt at all and just reuse that bet automatically.
+# Sets the global BET_RESULT rather than echoing (this must NOT run in
+# a subshell, or last_bet/skip_bet_prompt/quit updates would be lost).
 get_bet() {
     local bet prompt
+    BET_RESULT=""
     while true; do
         prompt="Bankroll: $(money "$bankroll"). Enter your bet"
         if [[ -n "$last_bet" ]]; then
             prompt+=" (or 's' to repeat $(money "$last_bet"), 'S' to repeat it every round)"
         fi
-        prompt+=", or 'q' to quit: "
+        prompt+=": "
         read -rp "$prompt" bet
 
         if [[ "$bet" == "q" || "$bet" == "Q" ]]; then
             quit=true
-            echo ""
             return
         fi
 
         if [[ "$bet" == "s" || "$bet" == "S" ]]; then
             if [[ -z "$last_bet" ]]; then
-                echo "No previous bet yet — enter a whole number." >&2
+                echo "No previous bet yet — enter a whole number."
                 continue
             fi
             if ((last_bet > bankroll)); then
-                echo "Your last bet ($(money "$last_bet")) is more than your bankroll. Enter a whole number between 1 and $bankroll." >&2
+                echo "Your last bet ($(money "$last_bet")) is more than your bankroll. Enter a whole number between 1 and $bankroll."
                 continue
             fi
             [[ "$bet" == "S" ]] && skip_bet_prompt=true
-            echo "$last_bet"
+            BET_RESULT=$last_bet
             return
         fi
 
         if [[ "$bet" =~ ^[0-9]+$ ]] && ((bet > 0)) && ((bet <= bankroll)); then
             last_bet=$bet
-            echo "$bet"
+            BET_RESULT=$bet
             return
         fi
 
-        echo "Enter a whole number between 1 and $bankroll." >&2
+        echo "Enter a whole number between 1 and $bankroll."
     done
 }
 
@@ -169,8 +171,9 @@ play_round() {
         bet=$last_bet
         echo "Bankroll: $(money "$bankroll"). Betting $(money "$bet") (repeat)."
     else
-        bet=$(get_bet)
+        get_bet
         $quit && return
+        bet=$BET_RESULT
     fi
 
     build_deck
@@ -217,8 +220,8 @@ play_round() {
             can_double=true
         fi
 
-        local action prompt_text="(h)it, (s)tand, or (q)uit? "
-        $can_double && prompt_text="(h)it, (s)tand, (d)ouble down, or (q)uit? "
+        local action prompt_text="(h)it or (s)tand? "
+        $can_double && prompt_text="(h)it, (s)tand, or (d)ouble down? "
         read -rp "$prompt_text" action
         case "$action" in
             h|H)
@@ -242,7 +245,7 @@ play_round() {
                 return
                 ;;
             *)
-                echo "Type 'h', 's', $($can_double && echo "'d', ")or 'q'."
+                echo "Type 'h', 's'$($can_double && echo ", 'd',") or 'q'."
                 ;;
         esac
     done
@@ -291,6 +294,7 @@ play_round() {
 
 main() {
     new_screen
+    say "Press 'q' any time you're prompted to quit the game."
 
     while ((bankroll > 0)) && ! $quit; do
         play_round
