@@ -131,7 +131,7 @@ get_bet() {
     while true; do
         prompt="Bankroll: $(money "$bankroll"). Enter your bet"
         if [[ -n "$last_bet" ]]; then
-            prompt+=" (or 's' to repeat $(money "$last_bet"), 'S' to repeat it every round)"
+            prompt+=" (or 's' to repeat your previous bet of $(money "$last_bet"), and 'S' to repeat it every round.)"
         fi
         prompt+=": "
         read -rp "$prompt" bet
@@ -294,7 +294,7 @@ play_round() {
 
 main() {
     new_screen
-    say "Press 'q' any time you're prompted to quit the game."
+    say "Press 'q' any time you're prompted to quit."
 
     while ((bankroll > 0)) && ! $quit; do
         play_round
