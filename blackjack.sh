@@ -309,6 +309,7 @@ main() {
     done
 
     echo "Final bankroll: $(money "$bankroll"). Thanks for playing!"
+    sleep 3
 }
 
 main
