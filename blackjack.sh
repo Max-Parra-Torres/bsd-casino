@@ -141,11 +141,11 @@ get_bet() {
 
         if [[ "$bet" == "s" || "$bet" == "S" ]]; then
             if [[ -z "$last_bet" ]]; then
-                echo "No previous bet yet — enter a whole number."
+                echo "No previous bet yet — enter a whole number." >&2
                 continue
             fi
             if ((last_bet > bankroll)); then
-                echo "Your last bet ($(money "$last_bet")) is more than your bankroll. Enter a whole number between 1 and $bankroll."
+                echo "Your last bet ($(money "$last_bet")) is more than your bankroll. Enter a whole number between 1 and $bankroll." >&2
                 continue
             fi
             [[ "$bet" == "S" ]] && skip_bet_prompt=true
@@ -159,7 +159,7 @@ get_bet() {
             return
         fi
 
-        echo "Enter a whole number between 1 and $bankroll."
+        echo "Enter a whole number between 1 and $bankroll." >&2
     done
 }
 
