@@ -129,7 +129,7 @@ get_bet() {
     local bet prompt
     BET_RESULT=""
     while true; do
-        prompt="Bankroll: $(money "$bankroll"). Enter your bet"
+        prompt="Enter your bet"
         if [[ -n "$last_bet" ]]; then
             prompt+=" (or 's' to repeat your previous bet of $(money "$last_bet"), and 'S' to repeat it every round.)"
         fi
