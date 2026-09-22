@@ -18,6 +18,7 @@ run_game() {
         blackjack|bj)  bash "${SCRIPT_DIR}/blackjack.sh" ;;
         slots|slot)    bash "${SCRIPT_DIR}/slots.sh" ;;
         highlow|hl)    bash "${SCRIPT_DIR}/highlow.sh" ;;
+        baccarat|br)   bash "${SCRIPT_DIR}/baccarat.sh ''
         *)
             echo "Unknown game: $name"
             echo "Available games: blackjack, slots, highlow"
@@ -35,6 +36,7 @@ clear
   1) Blackjack
   2) Slots
   3) High-Low
+  4) Baccarat
   q) Quit
 ------------------------------------
 EOF
@@ -49,6 +51,7 @@ interactive() {
             1) run_game blackjack ;;
             2) run_game slots ;;
             3) run_game highlow ;;
+            4) run_game baccarat ;;
             q|Q) echo "Goodbye!"; exit 0 ;;
             *) echo "Invalid choice." ;;
         esac
